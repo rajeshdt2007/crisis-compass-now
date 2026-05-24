@@ -9,38 +9,182 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AppNgosRouteImport } from './routes/app.ngos'
+import { Route as AppMissingRouteImport } from './routes/app.missing'
+import { Route as AppGuidanceRouteImport } from './routes/app.guidance'
+import { Route as AdminMissingRouteImport } from './routes/admin.missing'
+import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AppNgosRoute = AppNgosRouteImport.update({
+  id: '/ngos',
+  path: '/ngos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMissingRoute = AppMissingRouteImport.update({
+  id: '/missing',
+  path: '/missing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGuidanceRoute = AppGuidanceRouteImport.update({
+  id: '/guidance',
+  path: '/guidance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminMissingRoute = AdminMissingRouteImport.update({
+  id: '/missing',
+  path: '/missing',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAmbulancesRoute = AdminAmbulancesRouteImport.update({
+  id: '/ambulances',
+  path: '/ambulances',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/missing': typeof AdminMissingRoute
+  '/app/guidance': typeof AppGuidanceRoute
+  '/app/missing': typeof AppMissingRoute
+  '/app/ngos': typeof AppNgosRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof OnboardingRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/missing': typeof AdminMissingRoute
+  '/app/guidance': typeof AppGuidanceRoute
+  '/app/missing': typeof AppMissingRoute
+  '/app/ngos': typeof AppNgosRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/missing': typeof AdminMissingRoute
+  '/app/guidance': typeof AppGuidanceRoute
+  '/app/missing': typeof AppMissingRoute
+  '/app/ngos': typeof AppNgosRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/onboarding'
+    | '/admin/ambulances'
+    | '/admin/missing'
+    | '/app/guidance'
+    | '/app/missing'
+    | '/app/ngos'
+    | '/admin/'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/onboarding'
+    | '/admin/ambulances'
+    | '/admin/missing'
+    | '/app/guidance'
+    | '/app/missing'
+    | '/app/ngos'
+    | '/admin'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/onboarding'
+    | '/admin/ambulances'
+    | '/admin/missing'
+    | '/app/guidance'
+    | '/app/missing'
+    | '/app/ngos'
+    | '/admin/'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +192,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/app/ngos': {
+      id: '/app/ngos'
+      path: '/ngos'
+      fullPath: '/app/ngos'
+      preLoaderRoute: typeof AppNgosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/missing': {
+      id: '/app/missing'
+      path: '/missing'
+      fullPath: '/app/missing'
+      preLoaderRoute: typeof AppMissingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/guidance': {
+      id: '/app/guidance'
+      path: '/guidance'
+      fullPath: '/app/guidance'
+      preLoaderRoute: typeof AppGuidanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/missing': {
+      id: '/admin/missing'
+      path: '/missing'
+      fullPath: '/admin/missing'
+      preLoaderRoute: typeof AdminMissingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ambulances': {
+      id: '/admin/ambulances'
+      path: '/ambulances'
+      fullPath: '/admin/ambulances'
+      preLoaderRoute: typeof AdminAmbulancesRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminAmbulancesRoute: typeof AdminAmbulancesRoute
+  AdminMissingRoute: typeof AdminMissingRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAmbulancesRoute: AdminAmbulancesRoute,
+  AdminMissingRoute: AdminMissingRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface AppRouteChildren {
+  AppGuidanceRoute: typeof AppGuidanceRoute
+  AppMissingRoute: typeof AppMissingRoute
+  AppNgosRoute: typeof AppNgosRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppGuidanceRoute: AppGuidanceRoute,
+  AppMissingRoute: AppMissingRoute,
+  AppNgosRoute: AppNgosRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
