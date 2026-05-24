@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ function AdminShell() {
     setChecked(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     if (uid.trim() === ADMIN_UID && pw === ADMIN_PASSWORD) {
       sessionStorage.setItem(STORAGE_KEY, "1");
