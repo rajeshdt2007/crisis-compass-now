@@ -145,17 +145,28 @@ function AdminOverview() {
         </div>
       </Card>
 
-      <Card className="p-6 rounded-2xl bg-card">
-        <h2 className="font-bold mb-4">Alert map</h2>
+      <Card ref={mapRef} className="p-6 rounded-2xl bg-card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold">Alert map</h2>
+          {focused && (
+            <div className="text-xs text-muted-foreground">
+              Focused on: <span className="font-semibold text-foreground">{focused.profiles?.name ?? "user"}</span> ({focused.lat?.toFixed(4)}, {focused.lng?.toFixed(4)})
+              <button className="ml-2 underline" onClick={() => setFocused(null)}>clear</button>
+            </div>
+          )}
+        </div>
         <ClientOnly fallback={<div className="h-[400px] rounded-2xl bg-muted animate-pulse" />}>
           <MapView
-            center={[alerts[0]?.lat ?? 28.6139, alerts[0]?.lng ?? 77.2090]}
-            zoom={11}
+            key={focused?.id ?? "all"}
+            center={[focused?.lat ?? alerts[0]?.lat ?? 28.6139, focused?.lng ?? alerts[0]?.lng ?? 77.2090]}
+            zoom={focused ? 16 : 11}
             height="400px"
             markers={alerts.filter((a: any) => a.lat).map((a: any) => ({
               id: a.id, lat: a.lat, lng: a.lng,
-              label: `SOS · ${a.profiles?.name ?? "user"}`,
-              color: (a.vulnerability?.is_pregnant || a.vulnerability?.is_child || a.vulnerability?.is_disabled) ? "#ef4444" : "#f59e0b",
+              label: `SOS · ${a.profiles?.name ?? "user"} · ${a.profiles?.phone ?? ""}`,
+              color: a.id === focused?.id ? "#06b6d4"
+                : (a.vulnerability?.is_pregnant || a.vulnerability?.is_child || a.vulnerability?.is_disabled) ? "#ef4444"
+                : "#f59e0b",
             }))}
           />
         </ClientOnly>
