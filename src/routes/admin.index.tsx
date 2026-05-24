@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { AlertTriangle, Activity, Droplets, Users, Bell } from "lucide-react";
+import { AlertTriangle, Activity, Droplets, Users, Bell, MapPin, ExternalLink } from "lucide-react";
 import { ClientOnly } from "@/components/ClientOnly";
 import MapView from "@/components/MapView";
 import { toast } from "sonner";
