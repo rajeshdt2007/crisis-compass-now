@@ -126,7 +126,19 @@ function AdminOverview() {
                   </div>
                   <p className="text-xs text-muted-foreground">{a.lat?.toFixed(4)}, {a.lng?.toFixed(4)} · {new Date(a.created_at).toLocaleString()}</p>
                 </div>
-                <Button size="sm" onClick={() => notify(a)}><Bell className="w-3 h-3 mr-1" />Notify NGO</Button>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <Button size="sm" variant="outline" onClick={() => focusOnMap(a)} disabled={!a.lat}>
+                    <MapPin className="w-3 h-3 mr-1" />View location
+                  </Button>
+                  {a.lat && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`https://www.google.com/maps?q=${a.lat},${a.lng}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="w-3 h-3 mr-1" />Maps
+                      </a>
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={() => notify(a)}><Bell className="w-3 h-3 mr-1" />Notify NGO</Button>
+                </div>
               </div>
             );
           })}
