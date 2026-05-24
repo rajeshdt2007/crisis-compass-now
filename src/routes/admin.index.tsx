@@ -17,6 +17,14 @@ const COLORS = ["#06b6d4", "#f43f5e", "#f59e0b", "#a855f7", "#10b981"];
 
 function AdminOverview() {
   const qc = useQueryClient();
+  const [focused, setFocused] = useState<any>(null);
+  const mapRef = useRef<HTMLDivElement | null>(null);
+
+  const focusOnMap = (a: any) => {
+    if (!a?.lat) { toast.error("No location for this alert"); return; }
+    setFocused(a);
+    setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const { data: alerts = [] } = useQuery({
     queryKey: ["alerts"],
