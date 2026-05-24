@@ -327,7 +327,15 @@ export type Database = {
           user_id?: string
           vulnerability?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sos_alerts_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
