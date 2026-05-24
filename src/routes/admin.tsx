@@ -1,33 +1,75 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut } from "lucide-react";
+import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({ component: AdminShell });
 
+const ADMIN_UID = "RAJ_07";
+const ADMIN_PASSWORD = "RAJ@2007";
+const STORAGE_KEY = "reliefnet_admin_auth";
+
 function AdminShell() {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
+  const [authed, setAuthed] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [uid, setUid] = useState("");
+  const [pw, setPw] = useState("");
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) navigate({ to: "/" });
-  }, [loading, user, navigate]);
+    setAuthed(sessionStorage.getItem(STORAGE_KEY) === "1");
+    setChecked(true);
+  }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center admin-theme bg-background"><div className="text-muted-foreground">Loading...</div></div>;
-  if (!user) return null;
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (uid.trim() === ADMIN_UID && pw === ADMIN_PASSWORD) {
+      sessionStorage.setItem(STORAGE_KEY, "1");
+      setAuthed(true);
+      toast.success("Welcome, operator");
+    } else {
+      toast.error("Invalid credentials");
+    }
+  };
 
-  if (!isAdmin) {
+  const handleLogout = () => {
+    sessionStorage.removeItem(STORAGE_KEY);
+    setAuthed(false);
+    signOut();
+    navigate({ to: "/" });
+  };
+
+  if (!checked) return <div className="admin-theme min-h-screen bg-background" />;
+
+  if (!authed) {
     return (
       <div className="admin-theme min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-        <div className="max-w-md text-center glass rounded-3xl p-8">
-          <Shield className="w-12 h-12 mx-auto text-primary mb-4" />
-          <h1 className="text-2xl font-bold">Admin access required</h1>
-          <p className="text-muted-foreground mt-2 text-sm">Your account ({user.email}) doesn't have admin role. To grant access, an operator must add the <code className="bg-muted px-1 rounded">admin</code> role for your user_id in the user_roles table via Lovable Cloud → Database.</p>
-          <Button onClick={() => navigate({ to: "/app" })} className="mt-6 rounded-full">Go to user app</Button>
-        </div>
+        <Card className="max-w-md w-full p-8 rounded-3xl bg-card">
+          <div className="text-center mb-6">
+            <Shield className="w-12 h-12 mx-auto text-primary mb-3" />
+            <h1 className="text-2xl font-bold">ReliefNet <span className="text-primary">Ops</span></h1>
+            <p className="text-sm text-muted-foreground mt-1">Authorized personnel only</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label>Operator UID</Label>
+              <Input value={uid} onChange={(e) => setUid(e.target.value)} className="mt-1" autoComplete="username" placeholder="UID" />
+            </div>
+            <div>
+              <Label>Password</Label>
+              <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="mt-1" autoComplete="current-password" placeholder="••••••••" />
+            </div>
+            <Button type="submit" className="w-full rounded-full h-11"><Lock className="w-4 h-4 mr-2" />Sign in to Ops</Button>
+            <p className="text-xs text-muted-foreground text-center">For full data access, also sign in with Google on the <Link to="/" className="text-primary underline">main site</Link>.</p>
+          </form>
+        </Card>
       </div>
     );
   }
@@ -58,7 +100,7 @@ function AdminShell() {
               })}
             </nav>
           </div>
-          <button onClick={() => { signOut(); navigate({ to: "/" }); }} className="text-muted-foreground hover:text-foreground"><LogOut className="w-5 h-5" /></button>
+          <button onClick={handleLogout} className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"><LogOut className="w-4 h-4" />Sign out</button>
         </div>
       </header>
       <main className="container mx-auto px-6 py-6"><Outlet /></main>
