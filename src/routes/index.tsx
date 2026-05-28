@@ -11,17 +11,16 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/")({ component: Landing });
 
 function Landing() {
-  const { session, profile, isAdmin, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   const navigate = useNavigate();
   const [signing, setSigning] = useState(false);
 
   useEffect(() => {
     if (loading) return;
     if (!session) return;
-    if (isAdmin) { navigate({ to: "/admin" }); return; }
     if (profile && !profile.onboarded) { navigate({ to: "/onboarding" }); return; }
     if (profile?.onboarded) navigate({ to: "/app" });
-  }, [loading, session, profile, isAdmin, navigate]);
+  }, [loading, session, profile, navigate]);
 
   const signIn = async () => {
     setSigning(true);
