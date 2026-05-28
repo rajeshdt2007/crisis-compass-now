@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://crisis-compass-now.lovable.app/sitemap.xml
