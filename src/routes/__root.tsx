@@ -49,10 +49,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ReliefNet — Disaster Relief Coordination" },
+      { title: "ReliefNet  Disaster Relief Coordination" },
       { name: "description", content: "Real-time SOS, NGO coordination & relief resource management." },
-      { property: "og:title", content: "ReliefNet — Disaster Relief Coordination" },
-      { name: "twitter:title", content: "ReliefNet — Disaster Relief Coordination" },
+      { property: "og:title", content: "ReliefNet  Disaster Relief Coordination" },
+      { name: "twitter:title", content: "ReliefNet  Disaster Relief Coordination" },
       { property: "og:description", content: "Real-time SOS, NGO coordination & relief resource management." },
       { name: "twitter:description", content: "Real-time SOS, NGO coordination & relief resource management." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9db2fe9f-2025-4333-8fbd-a4d6670b65b3" },
