@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { useAuth } from "@/hooks/use-auth";
 import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ const ADMIN_PASSWORD = "RAJ@2007";
 const STORAGE_KEY = "reliefnet_admin_auth";
 
 function AdminShell() {
-  const { signOut, session, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
   const [opsAuthed, setOpsAuthed] = useState(false);
@@ -42,20 +40,11 @@ function AdminShell() {
   const handleLogout = () => {
     sessionStorage.removeItem(STORAGE_KEY);
     setOpsAuthed(false);
-    signOut();
     navigate({ to: "/" });
   };
 
-  const signInWithGoogle = async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const redirectTo = `${window.location.origin}/admin`;
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
-    if (error) toast.error(error.message);
-  };
+  if (!checked) return <div className="admin-theme min-h-screen bg-background" />;
 
-  if (!checked || loading) return <div className="admin-theme min-h-screen bg-background" />;
-
-  // Gate 1: operator code
   if (!opsAuthed) {
     return (
       <div className="admin-theme min-h-screen bg-background text-foreground flex items-center justify-center p-6">
@@ -80,32 +69,6 @@ function AdminShell() {
       </div>
     );
   }
-
-  // Gate 2: Supabase session + admin role (required for RLS-protected data access)
-  if (!session || !isAdmin) {
-    return (
-      <div className="admin-theme min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-        <Card className="max-w-md w-full p-8 rounded-3xl bg-card text-center">
-          <Shield className="w-12 h-12 mx-auto text-primary mb-3" />
-          <h1 className="text-xl font-bold mb-2">One more step</h1>
-          <p className="text-sm text-muted-foreground mb-6">
-            {!session
-              ? "Sign in with your admin Google account to load live data from the database."
-              : "This Google account isn't assigned the admin role. Sign in with an admin account."}
-          </p>
-          {!session ? (
-            <Button onClick={signInWithGoogle} className="w-full rounded-full h-11">Sign in with Google</Button>
-          ) : (
-            <Button onClick={handleLogout} variant="outline" className="w-full rounded-full h-11">Sign out & retry</Button>
-          )}
-          <button onClick={() => { sessionStorage.removeItem(STORAGE_KEY); setOpsAuthed(false); }} className="mt-4 text-xs text-muted-foreground underline">
-            Back to operator login
-          </button>
-        </Card>
-      </div>
-    );
-  }
-
 
   const tabs = [
     { to: "/admin", icon: LayoutDashboard, label: "Operations" },
