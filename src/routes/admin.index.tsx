@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { AlertTriangle, Activity, Droplets, Users, Bell, MapPin, ExternalLink } from "lucide-react";
+import { AlertTriangle, Activity, Droplets, Users, MapPin, ExternalLink } from "lucide-react";
 import { ClientOnly } from "@/components/ClientOnly";
 import MapView from "@/components/MapView";
 import { toast } from "sonner";
+import { api, openSosStream, type ApiSos } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/")({ component: AdminOverview });
 
@@ -17,90 +17,87 @@ const COLORS = ["#06b6d4", "#f43f5e", "#f59e0b", "#a855f7", "#10b981"];
 
 function AdminOverview() {
   const qc = useQueryClient();
-  const [focused, setFocused] = useState<any>(null);
+  const [focused, setFocused] = useState<ApiSos | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
 
-  const focusOnMap = (a: any) => {
-    if (!a?.lat) { toast.error("No location for this alert"); return; }
+  const focusOnMap = (a: ApiSos) => {
+    if (a.lat == null) { toast.error("No location for this alert"); return; }
     setFocused(a);
     setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  const { data: alerts = [] } = useQuery({
-    queryKey: ["alerts"],
-    queryFn: async () => (await supabase.from("sos_alerts").select("*, profiles(name, phone)").order("created_at", { ascending: false }).limit(50)).data ?? [],
-  });
-  const { data: distributions = [] } = useQuery({
-    queryKey: ["dist"],
-    queryFn: async () => (await supabase.from("resource_distributions").select("*").order("date")).data ?? [],
-  });
-  const { data: rescues = [] } = useQuery({
-    queryKey: ["rescues"],
-    queryFn: async () => (await supabase.from("rescues").select("*")).data ?? [],
-  });
-  const { data: ngos = [] } = useQuery({
-    queryKey: ["ngos"],
-    queryFn: async () => (await supabase.from("ngos").select("*").eq("active", true)).data ?? [],
-  });
+  const { data: alerts = [] } = useQuery({ queryKey: ["api", "sos"], queryFn: api.sosList });
+  const { data: summary } = useQuery({ queryKey: ["api", "summary"], queryFn: api.analyticsSummary });
+  const { data: rescues = [] } = useQuery({ queryKey: ["api", "rescues"], queryFn: api.analyticsRescues });
+  const { data: distributions = [] } = useQuery({ queryKey: ["api", "dist"], queryFn: () => api.analyticsDistributions(7) });
+  const { data: ngos = [] } = useQuery({ queryKey: ["api", "ngos"], queryFn: api.ngos });
 
+  // Live SSE for SOS alerts
   useEffect(() => {
-    const ch = supabase.channel("ops-alerts")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sos_alerts" }, (payload) => {
-        toast.error("🚨 New SOS alert received!", { description: `Coords: ${(payload.new as any).lat?.toFixed(3)}, ${(payload.new as any).lng?.toFixed(3)}` });
-        qc.invalidateQueries({ queryKey: ["alerts"] });
-      }).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const es = openSosStream((evt) => {
+      if (evt.type === "new_sos") {
+        toast.error("🚨 New SOS alert received!", {
+          description: `Coords: ${evt.alert.lat?.toFixed(3)}, ${evt.alert.lng?.toFixed(3)}`,
+        });
+        qc.setQueryData<ApiSos[]>(["api", "sos"], (prev = []) => [evt.alert, ...prev]);
+      } else if (evt.type === "status_update") {
+        qc.setQueryData<ApiSos[]>(["api", "sos"], (prev = []) =>
+          prev.map((a) => (a.id === evt.id ? { ...a, status: evt.status } : a)),
+        );
+      }
+    });
+    es.onerror = () => { /* let browser auto-retry; do not spam toasts */ };
+    return () => es.close();
   }, [qc]);
 
-  // Distribution chart: group by date
   const distByDate = Object.values(
-    distributions.reduce((acc: any, d: any) => {
-      acc[d.date] = acc[d.date] || { date: d.date.slice(5), health_kit: 0, food_kit: 0, water_litres: 0 };
-      acc[d.date][d.type] = (acc[d.date][d.type] || 0) + d.quantity;
+    distributions.reduce((acc: Record<string, any>, d) => {
+      const key = d.date;
+      acc[key] = acc[key] || { date: key.slice(5) };
+      acc[key][d.item_type] = (acc[key][d.item_type] || 0) + d.quantity;
       return acc;
-    }, {})
+    }, {}),
   );
+  const distKeys = Array.from(new Set(distributions.map((d) => d.item_type)));
 
-  const rescueData = rescues.map((r: any) => ({ name: r.category, value: r.count }));
-  const totalRescued = rescues.reduce((s: number, r: any) => s + r.count, 0);
-  const todayWater = distributions.filter((d: any) => d.type === "water_litres").reduce((s: number, d: any) => s + d.quantity, 0);
-
-  const notify = async (alert: any) => {
-    const { error } = await supabase.from("notifications").insert({ alert_id: alert.id, message: "Dispatched to nearest NGO", channel: "dashboard" });
-    if (!error) toast.success("Notification logged");
-  };
+  const rescueData = rescues.map((r) => ({ name: r.status, value: r.count }));
+  const pendingCount = summary?.pending_alerts ?? alerts.filter((a) => a.status === "Pending").length;
+  const totalRescued = rescues.reduce((s, r) => s + r.count, 0);
+  const waterToday = distributions
+    .filter((d) => /water/i.test(d.item_type))
+    .reduce((s, d) => s + d.quantity, 0);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat icon={AlertTriangle} label="Active alerts" value={alerts.filter((a: any) => a.status === "active").length} color="text-red-400" />
+        <Stat icon={AlertTriangle} label="Pending alerts" value={pendingCount} color="text-red-400" />
         <Stat icon={Users} label="People rescued" value={totalRescued} color="text-emerald-400" />
-        <Stat icon={Droplets} label="Water (L) today" value={todayWater.toLocaleString()} color="text-cyan-400" />
-        <Stat icon={Activity} label="Active NGOs" value={ngos.length} color="text-purple-400" />
+        <Stat icon={Droplets} label="Water units today" value={waterToday.toLocaleString()} color="text-cyan-400" />
+        <Stat icon={Activity} label="NGOs registered" value={ngos.length} color="text-purple-400" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="p-6 rounded-2xl bg-card">
           <h2 className="font-bold mb-4">Resource distribution (last 7 days)</h2>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={distByDate}>
+            <BarChart data={distByDate as any[]}>
               <XAxis dataKey="date" stroke="#888" fontSize={11} />
               <YAxis stroke="#888" fontSize={11} />
               <Tooltip contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} />
               <Legend />
-              <Bar dataKey="health_kit" fill="#06b6d4" radius={[6,6,0,0]} />
-              <Bar dataKey="food_kit" fill="#f59e0b" radius={[6,6,0,0]} />
-              <Bar dataKey="water_litres" fill="#a855f7" radius={[6,6,0,0]} />
+              {distKeys.map((k, i) => (
+                <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} radius={[6, 6, 0, 0]} />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
         <Card className="p-6 rounded-2xl bg-card">
-          <h2 className="font-bold mb-4">People rescued by category</h2>
+          <h2 className="font-bold mb-4">Rescues by status</h2>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={rescueData} dataKey="value" nameKey="name" outerRadius={90} label>
-                {rescueData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {rescueData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} />
               <Legend />
@@ -113,31 +110,32 @@ function AdminOverview() {
         <h2 className="font-bold mb-4">Live SOS feed</h2>
         <div className="space-y-2 max-h-96 overflow-auto">
           {alerts.length === 0 && <p className="text-muted-foreground text-sm">No alerts yet.</p>}
-          {alerts.map((a: any) => {
-            const v = a.vulnerability ?? {};
-            const isVuln = v.is_pregnant || v.is_child || v.is_disabled;
+          {alerts.map((a) => {
+            const isVuln = !!(a.is_pregnant || a.is_child || a.is_disabled || a.is_minor || a.is_elderly);
             return (
               <div key={a.id} className={`p-3 rounded-xl border flex items-center justify-between ${isVuln ? "border-red-500/40 bg-red-500/5" : "border-border"}`}>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{a.profiles?.name ?? "Unknown"}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold font-mono text-sm">{a.user_id.slice(0, 8)}</span>
                     {isVuln && <Badge variant="destructive">PRIORITY</Badge>}
                     <Badge variant="outline">{a.status}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{a.lat?.toFixed(4)}, {a.lng?.toFixed(4)} · {new Date(a.created_at).toLocaleString()}</p>
+                  {a.notes && <p className="text-sm mt-1">{a.notes}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    {a.lat?.toFixed(4)}, {a.lng?.toFixed(4)} · {new Date(a.created_at).toLocaleString()}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => focusOnMap(a)} disabled={!a.lat}>
-                    <MapPin className="w-3 h-3 mr-1" />View location
+                  <Button size="sm" variant="outline" onClick={() => focusOnMap(a)} disabled={a.lat == null}>
+                    <MapPin className="w-3 h-3 mr-1" />View
                   </Button>
-                  {a.lat && (
+                  {a.lat != null && (
                     <Button size="sm" variant="outline" asChild>
                       <a href={`https://www.google.com/maps?q=${a.lat},${a.lng}`} target="_blank" rel="noreferrer">
                         <ExternalLink className="w-3 h-3 mr-1" />Maps
                       </a>
                     </Button>
                   )}
-                  <Button size="sm" onClick={() => notify(a)}><Bell className="w-3 h-3 mr-1" />Notify NGO</Button>
                 </div>
               </div>
             );
@@ -150,7 +148,7 @@ function AdminOverview() {
           <h2 className="font-bold">Alert map</h2>
           {focused && (
             <div className="text-xs text-muted-foreground">
-              Focused on: <span className="font-semibold text-foreground">{focused.profiles?.name ?? "user"}</span> ({focused.lat?.toFixed(4)}, {focused.lng?.toFixed(4)})
+              Focused on: <span className="font-semibold text-foreground">{focused.id.slice(0, 8)}</span> ({focused.lat?.toFixed(4)}, {focused.lng?.toFixed(4)})
               <button className="ml-2 underline" onClick={() => setFocused(null)}>clear</button>
             </div>
           )}
@@ -158,14 +156,14 @@ function AdminOverview() {
         <ClientOnly fallback={<div className="h-[400px] rounded-2xl bg-muted animate-pulse" />}>
           <MapView
             key={focused?.id ?? "all"}
-            center={[focused?.lat ?? alerts[0]?.lat ?? 28.6139, focused?.lng ?? alerts[0]?.lng ?? 77.2090]}
+            center={[focused?.lat ?? alerts[0]?.lat ?? 28.6139, focused?.lng ?? alerts[0]?.lng ?? 77.209]}
             zoom={focused ? 16 : 11}
             height="400px"
-            markers={alerts.filter((a: any) => a.lat).map((a: any) => ({
+            markers={alerts.filter((a) => a.lat != null).map((a) => ({
               id: a.id, lat: a.lat, lng: a.lng,
-              label: `SOS · ${a.profiles?.name ?? "user"} · ${a.profiles?.phone ?? ""}`,
+              label: `SOS · ${a.status} · ${a.notes ?? ""}`,
               color: a.id === focused?.id ? "#06b6d4"
-                : (a.vulnerability?.is_pregnant || a.vulnerability?.is_child || a.vulnerability?.is_disabled) ? "#ef4444"
+                : (a.is_pregnant || a.is_child || a.is_disabled) ? "#ef4444"
                 : "#f59e0b",
             }))}
           />
