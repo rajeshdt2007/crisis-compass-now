@@ -1,11 +1,13 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut, Lock } from "lucide-react";
+import { Shield, LayoutDashboard, Ambulance, UserSearch, LogOut, Lock, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin")({ component: AdminShell });
 
@@ -16,6 +18,7 @@ const STORAGE_KEY = "reliefnet_admin_auth";
 function AdminShell() {
   const navigate = useNavigate();
   const loc = useLocation();
+  const { user, isAdmin, loading } = useAuth();
   const [opsAuthed, setOpsAuthed] = useState(false);
   const [checked, setChecked] = useState(false);
   const [uid, setUid] = useState("");
@@ -31,20 +34,28 @@ function AdminShell() {
     if (uid.trim() === ADMIN_UID && pw === ADMIN_PASSWORD) {
       sessionStorage.setItem(STORAGE_KEY, "1");
       setOpsAuthed(true);
-      toast.success("Welcome, operator");
+      toast.success("Operator gate cleared");
     } else {
       toast.error("Invalid credentials");
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sessionStorage.removeItem(STORAGE_KEY);
     setOpsAuthed(false);
+    await supabase.auth.signOut();
     navigate({ to: "/" });
   };
 
-  if (!checked) return <div className="admin-theme min-h-screen bg-background" />;
+  const signInGoogle = async () => {
+    const redirectTo = `${window.location.origin}/admin`;
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    if (error) toast.error(error.message);
+  };
 
+  if (!checked || loading) return <div className="admin-theme min-h-screen bg-background" />;
+
+  // Layer 1: operator gate
   if (!opsAuthed) {
     return (
       <div className="admin-theme min-h-screen bg-background text-foreground flex items-center justify-center p-6">
@@ -52,7 +63,7 @@ function AdminShell() {
           <div className="text-center mb-6">
             <Shield className="w-12 h-12 mx-auto text-primary mb-3" />
             <h1 className="text-2xl font-bold">ReliefNet <span className="text-primary">Ops</span></h1>
-            <p className="text-sm text-muted-foreground mt-1">Authorized personnel only</p>
+            <p className="text-sm text-muted-foreground mt-1">Step 1 of 2 — Operator gate</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -63,8 +74,27 @@ function AdminShell() {
               <Label>Password</Label>
               <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="mt-1" autoComplete="current-password" placeholder="••••••••" />
             </div>
-            <Button type="submit" className="w-full rounded-full h-11"><Lock className="w-4 h-4 mr-2" />Sign in to Ops</Button>
+            <Button type="submit" className="w-full rounded-full h-11"><Lock className="w-4 h-4 mr-2" />Continue</Button>
           </form>
+        </Card>
+      </div>
+    );
+  }
+
+  // Layer 2: Supabase admin session (required for RLS to allow reading sos_alerts)
+  if (!user || !isAdmin) {
+    return (
+      <div className="admin-theme min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <Card className="max-w-md w-full p-8 rounded-3xl bg-card text-center">
+          <Shield className="w-12 h-12 mx-auto text-primary mb-3" />
+          <h1 className="text-2xl font-bold mb-1">Sign in as admin</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {user ? "Your account does not have the admin role. Contact the system owner." : "Step 2 of 2 — Sign in with the Google account that has the admin role."}
+          </p>
+          {!user && (
+            <Button onClick={signInGoogle} className="w-full rounded-full h-11 mb-3">Continue with Google</Button>
+          )}
+          <Button variant="ghost" className="w-full" onClick={handleLogout}>Cancel</Button>
         </Card>
       </div>
     );
@@ -74,6 +104,7 @@ function AdminShell() {
     { to: "/admin", icon: LayoutDashboard, label: "Operations" },
     { to: "/admin/ambulances", icon: Ambulance, label: "Fleet" },
     { to: "/admin/missing", icon: UserSearch, label: "Missing" },
+    { to: "/admin/diagnostics", icon: Activity, label: "Diagnostics" },
   ];
 
   return (

@@ -20,6 +20,7 @@ import { Route as AppNgosRouteImport } from './routes/app.ngos'
 import { Route as AppMissingRouteImport } from './routes/app.missing'
 import { Route as AppGuidanceRouteImport } from './routes/app.guidance'
 import { Route as AdminMissingRouteImport } from './routes/admin.missing'
+import { Route as AdminDiagnosticsRouteImport } from './routes/admin.diagnostics'
 import { Route as AdminAmbulancesRouteImport } from './routes/admin.ambulances'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -77,6 +78,11 @@ const AdminMissingRoute = AdminMissingRouteImport.update({
   path: '/missing',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDiagnosticsRoute = AdminDiagnosticsRouteImport.update({
+  id: '/diagnostics',
+  path: '/diagnostics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAmbulancesRoute = AdminAmbulancesRouteImport.update({
   id: '/ambulances',
   path: '/ambulances',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/diagnostics': typeof AdminDiagnosticsRoute
   '/admin/missing': typeof AdminMissingRoute
   '/app/guidance': typeof AppGuidanceRoute
   '/app/missing': typeof AppMissingRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/diagnostics': typeof AdminDiagnosticsRoute
   '/admin/missing': typeof AdminMissingRoute
   '/app/guidance': typeof AppGuidanceRoute
   '/app/missing': typeof AppMissingRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/ambulances': typeof AdminAmbulancesRoute
+  '/admin/diagnostics': typeof AdminDiagnosticsRoute
   '/admin/missing': typeof AdminMissingRoute
   '/app/guidance': typeof AppGuidanceRoute
   '/app/missing': typeof AppMissingRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap.xml'
     | '/admin/ambulances'
+    | '/admin/diagnostics'
     | '/admin/missing'
     | '/app/guidance'
     | '/app/missing'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap.xml'
     | '/admin/ambulances'
+    | '/admin/diagnostics'
     | '/admin/missing'
     | '/app/guidance'
     | '/app/missing'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sitemap.xml'
     | '/admin/ambulances'
+    | '/admin/diagnostics'
     | '/admin/missing'
     | '/app/guidance'
     | '/app/missing'
@@ -254,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMissingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/diagnostics': {
+      id: '/admin/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/admin/diagnostics'
+      preLoaderRoute: typeof AdminDiagnosticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ambulances': {
       id: '/admin/ambulances'
       path: '/ambulances'
@@ -266,12 +285,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAmbulancesRoute: typeof AdminAmbulancesRoute
+  AdminDiagnosticsRoute: typeof AdminDiagnosticsRoute
   AdminMissingRoute: typeof AdminMissingRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAmbulancesRoute: AdminAmbulancesRoute,
+  AdminDiagnosticsRoute: AdminDiagnosticsRoute,
   AdminMissingRoute: AdminMissingRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
