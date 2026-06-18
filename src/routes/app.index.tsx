@@ -74,19 +74,28 @@ function SosHome() {
   }, []);
 
   const sendSos = async () => {
+    console.log("[sos] button pressed", { user: user?.id, liveCoords });
     if (!user) { toast.error("Not signed in"); return; }
     if (!liveCoords) { toast.error("Tap 'Share live location' first"); return; }
     setSending(true);
-    const { error } = await supabase.from("sos_alerts").insert({
+    const payload = {
       user_id: user.id, lat: liveCoords.lat, lng: liveCoords.lng,
       vulnerability: {
         is_pregnant: profile?.is_pregnant, is_child: profile?.is_child, is_minor: profile?.is_minor,
         is_elderly: profile?.is_elderly, is_disabled: profile?.is_disabled,
       },
-    });
+    };
+    console.log("[sos] inserting", payload);
+    const { data, error } = await supabase.from("sos_alerts").insert(payload).select().single();
     setSending(false);
-    if (error) toast.error(error.message);
-    else { toast.success("🚨 SOS sent! Help is being dispatched."); refresh(); }
+    if (error) {
+      console.error("[sos] insert failed", error);
+      toast.error(error.message);
+    } else {
+      console.log("[sos] insert ok", data);
+      toast.success("🚨 SOS sent! Help is being dispatched.");
+      refresh();
+    }
   };
 
   const sortByDistance = (places: Place[]) =>
